@@ -64,6 +64,22 @@ export interface AIDecisionPoint {
     overallRiskScore: number;
   }
   
+  // ---------- Module 6: Compliance Engine (lite) ----------
+  
+  export type EUAIActTier = "unacceptable" | "high" | "limited" | "minimal";
+  
+  export interface ComplianceFlag {
+    decisionPointId: string;
+    decisionPointName: string;
+    tier: EUAIActTier;
+    justification: string;
+    keyObligations: string[];
+  }
+  
+  export interface ComplianceResult {
+    flags: ComplianceFlag[];
+  }
+  
   // ---------- Aggregated Final Report ----------
   
   export interface GovernanceReport {
@@ -71,6 +87,7 @@ export interface AIDecisionPoint {
     analyzer: AnalyzerResult;
     requirements: RequirementGeneratorResult;
     risk: RiskAssessmentResult;
+    compliance: ComplianceResult;
     generatedAt: string;
   }
   
@@ -85,5 +102,9 @@ export interface AIDecisionPoint {
   }
   
   export interface AssessRiskRequestBody {
+    decisionPoints: AIDecisionPoint[];
+  }
+  
+  export interface AssessComplianceRequestBody {
     decisionPoints: AIDecisionPoint[];
   }

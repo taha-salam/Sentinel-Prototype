@@ -12,11 +12,16 @@ import {
   RISK_ASSESSMENT_SYSTEM_PROMPT,
   buildRiskAssessmentUserPrompt,
 } from "@/lib/prompts/riskAssessment";
+import {
+  COMPLIANCE_SYSTEM_PROMPT,
+  buildComplianceUserPrompt,
+} from "@/lib/prompts/compliance";
 import type {
   AnalyzeRequestBody,
   AnalyzerResult,
   RequirementGeneratorResult,
   RiskAssessmentResult,
+  ComplianceResult,
   GovernanceReport,
 } from "@/types";
 
@@ -52,14 +57,16 @@ export async function POST(req: NextRequest) {
         analyzer,
         requirements: { requirements: [] },
         risk: { assessments: [], overallRiskScore: 0 },
+        compliance: { flags: [] },
         generatedAt: new Date().toISOString(),
       };
       return NextResponse.json(emptyReport);
     }
 
-    // Step 2 & 3: Requirement Generator and Risk Assessment both only depend
-    // on the analyzer's output, not on each other — run them in parallel.
-    const [requirements, risk] = await Promise.all([
+    // Step 2, 3 & 4: Requirement Generator, Risk Assessment, and Compliance
+    // Engine all only depend on the analyzer's output, not on each other —
+    // run them in parallel.
+    const [requirements, risk, compliance] = await Promise.all([
       callGroqJSON<RequirementGeneratorResult>({
         systemPrompt: REQUIREMENT_GENERATOR_SYSTEM_PROMPT,
         userPrompt: buildRequirementGeneratorUserPrompt(
@@ -69,6 +76,10 @@ export async function POST(req: NextRequest) {
       callGroqJSON<RiskAssessmentResult>({
         systemPrompt: RISK_ASSESSMENT_SYSTEM_PROMPT,
         userPrompt: buildRiskAssessmentUserPrompt(analyzer.decisionPoints),
+      }),
+      callGroqJSON<ComplianceResult>({
+        systemPrompt: COMPLIANCE_SYSTEM_PROMPT,
+        userPrompt: buildComplianceUserPrompt(analyzer.decisionPoints),
       }),
     ]);
 
@@ -82,12 +93,16 @@ export async function POST(req: NextRequest) {
         "Malformed risk assessment output: assessments missing."
       );
     }
+    if (!Array.isArray(compliance.flags)) {
+      throw new Error("Malformed compliance output: flags missing.");
+    }
 
     const report: GovernanceReport = {
       systemDescription: body.systemDescription,
       analyzer,
       requirements,
       risk,
+      compliance,
       generatedAt: new Date().toISOString(),
     };
 

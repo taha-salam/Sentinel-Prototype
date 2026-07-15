@@ -10,6 +10,20 @@ const RISK_COLORS: Record<string, string> = {
   CRITICAL: "#C53030",
 };
 
+const TIER_COLORS: Record<string, string> = {
+  unacceptable: "#C53030",
+  high: "#C05621",
+  limited: "#B7791F",
+  minimal: "#2F855A",
+};
+
+const TIER_LABELS: Record<string, string> = {
+  unacceptable: "Unacceptable Risk",
+  high: "High Risk",
+  limited: "Limited Risk",
+  minimal: "Minimal Risk",
+};
+
 const CATEGORY_COLORS: Record<RequirementCategory, string> = {
   "human-oversight": "#5B4B8A",
   functional: "#1B6E7A",
@@ -46,7 +60,7 @@ function pad(n: number): string {
 const SAMPLE_TEXT =
   "The system uses an LLM to automatically approve or reject loan applications above $50,000 without human review. It also has a chatbot that answers customer FAQs, and a fraud detection model that flags suspicious transactions for a human analyst to review before any account is frozen.";
 
-type Section = "overview" | "decisions" | "requirements";
+type Section = "overview" | "decisions" | "requirements" | "compliance";
 
 const SERIF = "'Source Serif 4', Georgia, serif";
 const SANS = "'IBM Plex Sans', system-ui, sans-serif";
@@ -217,7 +231,7 @@ export default function Home() {
             <div className="flex gap-10 pt-8">
               {/* Vertical nav */}
               <nav className="w-40 shrink-0 space-y-1">
-                {(["overview", "decisions", "requirements"] as Section[]).map((s) => (
+                {(["overview", "decisions", "requirements", "compliance"] as Section[]).map((s) => (
                   <button
                     key={s}
                     onClick={() => setSection(s)}
@@ -227,7 +241,13 @@ export default function Home() {
                         : "border-[#E4E4E7] text-[#71717A] hover:text-[#18181B] hover:border-[#A1A1AA]"
                     }`}
                   >
-                    {s === "decisions" ? "Decision Points" : s === "requirements" ? "Requirements" : "Overview"}
+                    {s === "decisions"
+                      ? "Decision Points"
+                      : s === "requirements"
+                      ? "Requirements"
+                      : s === "compliance"
+                      ? "Compliance"
+                      : "Overview"}
                   </button>
                 ))}
               </nav>
@@ -391,6 +411,45 @@ export default function Home() {
                         );
                       })}
                     </div>
+                  </div>
+                )}
+
+                {section === "compliance" && (
+                  <div>
+                    <p className="text-sm text-[#71717A] mb-5">
+                      Tier classification against the EU AI Act's risk-based framework. This is a lightweight
+                      first-pass assessment, not a substitute for formal legal review.
+                    </p>
+                    {report.compliance.flags.map((flag, i) => {
+                      const c = TIER_COLORS[flag.tier];
+                      return (
+                        <div key={flag.decisionPointId} className="flex gap-3 py-4 border-b border-[#E4E4E7]">
+                          <span className="text-[11px] text-[#A1A1AA] pt-0.5 shrink-0" style={{ fontFamily: MONO }}>
+                            DP-{pad(i + 1)}
+                          </span>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between gap-4">
+                              <h3 className="text-sm font-medium">{flag.decisionPointName}</h3>
+                              <span
+                                className="text-[11px] shrink-0"
+                                style={{ fontFamily: MONO, color: c }}
+                              >
+                                {TIER_LABELS[flag.tier].toUpperCase()}
+                              </span>
+                            </div>
+                            <p className="text-sm text-[#3F3F46] mt-1.5">{flag.justification}</p>
+                            <ul className="mt-2 space-y-1">
+                              {flag.keyObligations.map((ob, j) => (
+                                <li key={j} className="text-sm text-[#71717A] flex gap-2">
+                                  <span className="text-[#A1A1AA]">-</span>
+                                  <span>{ob}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
